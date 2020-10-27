@@ -8,8 +8,6 @@ require('dotenv').config();
 const { validationResult } = require('express-validator');
 
 exports.autenticarUsuario = async (req, res, next) => {
-
-
     //mostrar mensajes de error de express validator
     const errores = validationResult(req);
     if (!errores.isEmpty()) {

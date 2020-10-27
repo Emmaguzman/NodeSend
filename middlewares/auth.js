@@ -9,6 +9,7 @@ module.exports=(req,res,next)=>{
           //Obtener token
           const token = authHeader.split(' ')[1];
           //combrobar JWT
+          if(token){
           try {
               const usuario = jwt.verify(token, process.env.JwtSecret);
               req.usuario=usuario;
@@ -18,7 +19,7 @@ module.exports=(req,res,next)=>{
                   msg:"TOKEN NO VALIDO"
               })
           }
-  
+        }
       }
   
       return next();

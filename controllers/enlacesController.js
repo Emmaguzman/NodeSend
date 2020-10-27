@@ -2,17 +2,17 @@ const Enlaces = require('../models/Enlace');
 
 const { validationResult } = require('express-validator');
 const shortid = require('shortid');
-const bcryptjs=require('bcryptjs');
+const bcryptjs = require('bcryptjs');
 
-
+//Generar nuevo enlace
 exports.nuevoEnlace = async (req, res, next) => {
-    const errores=validationResult(req);
+    const errores = validationResult(req);
     //revisar si hay errores
-    if(!errores.isEmpty()){
+    if (!errores.isEmpty()) {
         return res.status(400).json({
-            ok:false,
-            msg:"Error De Validacion",
-            errores:errores.array()
+            ok: false,
+            msg: "Error De Validacion",
+            errores: errores.array()
         });
     }
 
@@ -34,9 +34,9 @@ exports.nuevoEnlace = async (req, res, next) => {
             enlace.descargas = descargas;
         }
         //asignar un password
-        if (password) {            
-            const salt=await bcryptjs.genSalt();          
-            enlace.password =await bcryptjs.hash(password,salt);
+        if (password) {
+            const salt = await bcryptjs.genSalt();
+            enlace.password = await bcryptjs.hash(password, salt);
         }
         //asignar el autor
         enlace.autor = req.usuario.id
@@ -44,7 +44,7 @@ exports.nuevoEnlace = async (req, res, next) => {
 
 
     //Almacenar en la BD
-   
+
     try {
         await enlace.save();
         return res.status(200).json({
@@ -62,40 +62,73 @@ exports.nuevoEnlace = async (req, res, next) => {
 
     console.log(enlace);
 }
+//retorna si el enlace tiene password o no
+exports.tienePassword = async (req, res, next) => {
+    // console.log(req.params.url);
+    const { url } = req.params;
+    console.log(url);
+    // Verificar si existe el enlace
+    const enlace = await Enlaces.findOne({ url });
+    if(!enlace) {
+        res.status(404).json({msg: 'Ese Enlace no existe'});
+        return next();
+    }
+    if(enlace.password) {
+        return res.json({ password: true, enlace: enlace.url });
+    }
 
-exports.obtenerEnlace=async(req,res,next)=>{
+    next();
+}
+//Obtener enlace por ID
+exports.obtenerEnlace = async (req, res, next) => {
 
     //  console.log(req.params.url);
-    const {url}=req.params;
-    const enlace=await Enlaces.findOne({url});    
-    if(!enlace){
+    const { url } = req.params;
+    //console.log(url)
+    const enlace = await Enlaces.findOne({ url });
+    if (!enlace) {
         res.status(404).json({
-            ok:false,
-            msg:"ENLACE NO ENCONTRADO"
+            ok: false,
+            msg: "ENLACE NO ENCONTRADO"
         });
         return next();
     }
     //verificar si existe el enlace
-    res.status(200).json({
-        ok:true,
-        archivo:enlace.nombre
-    })
+    res.json({ archivo: enlace.nombre,password:false })
+    next();
+}
 
-    const {descargas,nombre}=enlace;
-    //si las descargas son iguales a 1 -borrar entrada y borrar archivo
-    if(descargas===1){
-        console.log('si solo 1')
-        //eliminar el archivo
-       req.archivo=nombre;
-        //eliminar la entrada de la bd
-        await Enlaces.findOneAndRemove(req.params.url);
+//Obtiene un listado de todos los enlaces
+exports.todosEnlaces = async (req, res,next) => {
+    try {
+        const enlaces = await Enlaces.find({}).select('url -_id');
+        res.json({ enlaces })
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+//Verifica si password es correcto
+exports.verificarPassword=async (req,res,next)=>{
+    
+    const {url}=req.params;
+    const {password}=req.body
+    //Consultar por el enlace
+    const enlace=await Enlaces.findOne({url});
+
+    //Verificar el password
+    if(bcryptjs.compareSync(password,enlace.password)){
+        //Permitir al usuario descargar el archivo
         next();
     }else{
-        //si las descargas son > a 1 - restar 1
-        console.log(`Tenemos ${descargas} archivos`)
-        enlace.descargas--;
-        enlace.save();
+        return res.status(401).json({
+            ok:false,
+            msg:"PASSWORD INCORRECTO"
+        })
     }
-
     
+    
+   
+    
+
 }
