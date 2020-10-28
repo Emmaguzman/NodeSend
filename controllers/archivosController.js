@@ -62,12 +62,15 @@ exports.borrarArchivos = async (req, res, next) => {
 //descarga un archivo
 exports.descargar = async (req, res, next) => {
     //Obtiene el enlace
+    try{
+    console.log(req.params);
     const { archivo } = req.params
     const enlace = await Enlaces.findOne({ nombre: archivo });
 
     const archivoDescarga = __dirname + '/../uploads/' + archivo;
     res.download(archivoDescarga);
-
+    console.log('EL ENLACE ES----------------------')
+    console.log(enlace);
     //Eliminar el archivo y la entrada en la bd
     const { descargas, nombre } = enlace;
     //console.log(descargas , nombre)
@@ -84,6 +87,8 @@ exports.descargar = async (req, res, next) => {
         console.log(`Tenemos ${descargas} archivos`)
         enlace.descargas--;
         await enlace.save();
+    }}catch(error){
+        console.log(error);
     }
 }
 
